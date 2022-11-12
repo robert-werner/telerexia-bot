@@ -1,0 +1,6 @@
+CREATE TABLE weights (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id INTEGER,
+	weight INTEGER,
+	unix_time INTEGER
+);
