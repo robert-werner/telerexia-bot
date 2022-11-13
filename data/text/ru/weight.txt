@@ -1,7 +1,4 @@
-{username}, твой вес {weight_action} на {grams_quantity} грамма ({kilograms_quantity} килограмма).
-
-Теперь он равен {current_user_weight} килограмм(ам).
-
-Ты занимаешь {place} место в топе чата.
+<a href="tg://user?id={user_id}">{user_name}</a>, {weight_action}
+Твоё место в топе чате на момент взвешивания: {place}
 
 {premium_message}
