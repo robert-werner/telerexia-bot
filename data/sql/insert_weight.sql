@@ -1,3 +1,1 @@
-INSERT INTO weights
-(user_id, weight, "unix_time")
-VALUES({user_id}, {weight}, {unix_time});
+insert into weights (user_id,group_id,weight,unix_time) values ({user_id}, {group_id}, {weight}, {unix_time});

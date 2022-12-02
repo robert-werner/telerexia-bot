@@ -1,5 +1,5 @@
-SELECT * 
-FROM weights
-WHERE unix_time = (SELECT MAX(unix_time) from weights) AND user_id = {user_id}
-ORDER BY unix_time DESC
-LIMIT 1
+select *
+from weights
+where user_id = {user_id} and group_id = {group_id}
+order by unix_time desc
+limit 1

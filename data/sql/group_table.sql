@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS weights (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	user_id INTEGER,
-	weight INTEGER,
-	unix_time INTEGER
-);

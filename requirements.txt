@@ -1,2 +1,3 @@
 aiofiles
 aiogram
+sqlalchemy[asyncio]
