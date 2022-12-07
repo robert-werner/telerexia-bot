@@ -1,16 +1,15 @@
 import datetime
 import random
-import sqlite3
 import time
-from contextlib import closing
 from datetime import datetime
-from sqlalchemy import text
 from enum import Enum
+from bot import dp
 
 import aiofiles
 from aiogram import types
 from aiogram.types import ParseMode
 from aiogram.utils import executor
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import DATABASE_URI
@@ -24,7 +23,54 @@ class WeightAction(Enum):
     EQUAL = """твой вес не изменился (или ты взвешиваешься в первый раз).\n\nТвой текущий вес: {current_weight_kg} килограмм(а)"""
 
 
-from bot import dp
+async def user_local_place(user_id, chat_id):
+    user_id = int(user_id)
+    engine = create_async_engine(DATABASE_URI, echo=True)
+    async with engine.connect() as conn:
+        async with aiofiles.open("data/sql/select_places_from_group.sql", mode='r', encoding='utf-8') as f:
+            group_weight_top_query = await f.read()
+        group_weight_top_query = group_weight_top_query.format(group_id=int(chat_id))
+        result = await conn.execute(text(group_weight_top_query))
+        rows = result.fetchall()
+        for row in rows:
+            if row[1] == user_id:
+                return row[0]
+        return False
+
+
+async def user_global_place(user_id):
+    user_id = int(user_id)
+    engine = create_async_engine(DATABASE_URI, echo=True)
+    async with engine.connect() as conn:
+        async with aiofiles.open("data/sql/select_places_from_global.sql", mode='r', encoding='utf-8') as f:
+            global_weight_top_query = await f.read()
+        result = await conn.execute(text(global_weight_top_query))
+        rows = result.fetchall()
+        for row in rows:
+            if row[1] == user_id:
+                return row[0]
+        return False
+
+
+async def local_top_weight(chat_id):
+    engine = create_async_engine(DATABASE_URI, echo=True)
+    async with engine.connect() as conn:
+        async with aiofiles.open("data/sql/select_places_from_group_limited.sql", mode='r', encoding='utf-8') as f:
+            group_weight_top_query = await f.read()
+        group_weight_top_query = group_weight_top_query.format(group_id=int(chat_id))
+        result = await conn.execute(text(group_weight_top_query))
+        rows = result.fetchall()
+        return rows
+
+
+async def global_top_weight():
+    engine = create_async_engine(DATABASE_URI, echo=True)
+    async with engine.connect() as conn:
+        async with aiofiles.open("data/sql/select_places_from_global_limited.sql", mode='r', encoding='utf-8') as f:
+            global_weight_top_query = await f.read()
+        result = await conn.execute(text(global_weight_top_query))
+        rows = result.fetchall()
+        return rows
 
 
 async def weighted_already(chat_id, user_id):
@@ -127,6 +173,7 @@ async def send_weight(message: types.Message):
         elif weight_diff == 0:
             diff_description = WeightAction.EQUAL.value
         await write_weight(message.chat.id, message.from_user.id, current_weight)
+        user_place = await user_local_place(message.from_user.id, message.chat.id)
         diff_description = diff_description.format(
             weight_diff=weight_diff,
             weight_diff_kg=weight_diff_kg,
@@ -137,7 +184,7 @@ async def send_weight(message: types.Message):
             user_name=message.from_user.full_name,
             user_id=message.from_user.id,
             weight_action=diff_description,
-            place=0,
+            place=user_place,
             premium_message='yes'
         )
     else:
