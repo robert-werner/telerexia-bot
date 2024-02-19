@@ -1,4 +1,4 @@
 <a href="tg://user?id={user_id}">{user_name}</a>, {weight_action}
-Твоё место в топе чате на момент взвешивания: {place}
+Твоё место в топе чата на момент взвешивания: {place}
 
 {premium_message}

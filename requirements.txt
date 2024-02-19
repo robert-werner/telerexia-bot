@@ -1,4 +1,4 @@
 aiofiles
-aiogram
+aiogram<3.0.0
 asyncpg
 sqlalchemy[asyncio]

@@ -1,1 +1,1 @@
-insert into weights (user_id,group_id,weight,unix_time) values ({user_id}, {group_id}, {weight}, {unix_time});
+insert into weights (user_id,group_id,weight,weight_time) values ({user_id}, {group_id}, {weight}, {weight_time});

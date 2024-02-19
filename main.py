@@ -32,20 +32,7 @@ async def user_local_place(user_id, chat_id):
         group_weight_top_query = group_weight_top_query.format(group_id=int(chat_id))
         result = await conn.execute(text(group_weight_top_query))
         rows = result.fetchall()
-        for row in rows:
-            if row[1] == user_id:
-                return row[0]
-        return False
-
-
-async def user_global_place(user_id):
-    user_id = int(user_id)
-    engine = create_async_engine(DATABASE_URI, echo=True)
-    async with engine.connect() as conn:
-        async with aiofiles.open("data/sql/select_places_from_global.sql", mode='r', encoding='utf-8') as f:
-            global_weight_top_query = await f.read()
-        result = await conn.execute(text(global_weight_top_query))
-        rows = result.fetchall()
+        print(rows)
         for row in rows:
             if row[1] == user_id:
                 return row[0]
@@ -78,19 +65,18 @@ async def weighted_already(chat_id, user_id):
     unix_date_today = time.mktime(date_today.timetuple())
     engine = create_async_engine(DATABASE_URI, echo=True)
     async with engine.connect() as conn:
-        async with aiofiles.open("./data/sql/select_last_user_weight.sql", mode='r', encoding='utf-8') as f:
+        async with aiofiles.open("./data/sql/select_last_user_weight_date.sql", mode='r', encoding='utf-8') as f:
             select_user_query = await f.read()
         select_user_query = select_user_query.format(user_id=int(user_id), group_id=int(chat_id))
         result = await conn.execute(text(select_user_query))
         row = result.fetchone()
         if not row:
             return False
-        last_weight_date = int(row[4])
+        last_weight_date = int(row[0])
         date_diff = unix_date_today - last_weight_date
         if date_diff <= 10:
             return True
-        else:
-            return False
+        return False
 
 
 async def last_weight(chat_id, user_id):
@@ -103,7 +89,7 @@ async def last_weight(chat_id, user_id):
         row = result.fetchone()
         if not row:
             return 0
-        last_weight_grams = int(row[3])
+        last_weight_grams = int(row[0])
         return last_weight_grams
 
 
@@ -115,10 +101,9 @@ async def write_weight(chat_id, user_id, weight):
         async with aiofiles.open("./data/sql/insert_weight.sql", mode='r', encoding='utf-8') as f:
             insert_weight_query = await f.read()
         user_insert_weight_query = insert_weight_query.format(user_id=user_id, group_id=chat_id, weight=weight,
-                                                              unix_time=unix_date_today)
+                                                              weight_time=unix_date_today)
         await conn.execute(text(user_insert_weight_query))
         await conn.commit()
-
 
 @dp.message_handler(lambda message: 'group' in message.chat.type, commands="help")
 async def send_welcome(message: types.Message):
@@ -137,14 +122,19 @@ async def send_local_top_weight(message: types.Message):
     Send local top-10 weight to a bot user.
     :param message:
     """
+    local_weights = []
+    top_weights = await local_top_weight(message.chat.id)
+    async with aiofiles.open("./data/text/ru/local_weights.txt", mode='r', encoding='utf-8') as f:
+        contents = await f.read()
+    for weight in top_weights:
+        user_id = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.full_name}</a>'
+        local_weights.append(f"{weight[0]}: {user_id}")
+    local_weights = "\n".join(local_weights)
+    message_contents = contents.format(
+        local_weights=local_weights
+    )
 
-
-@dp.message_handler(lambda message: 'group' in message.chat.type, commands="global")
-async def send_global_top_weight(message: types.Message):
-    """
-    Send global top-10 weight to a bot user.
-    :param message:
-    """
+    return await message.reply(text=message_contents, parse_mode=ParseMode.HTML)
 
 
 @dp.message_handler(lambda message: 'group' in message.chat.type, commands="weight")
@@ -154,13 +144,12 @@ async def send_weight(message: types.Message):
     :param message:
     """
 
+    global diff_description
     user_weighted_already = await weighted_already(message.chat.id, message.from_user.id)
     if not user_weighted_already:
         async with aiofiles.open("./data/text/ru/weight.txt", mode='r', encoding='utf-8') as f:
             contents = await f.read()
-        random_weight = random.randint(0, 100000)
-        while random_weight < 0:
-            random_weight = random.randint(0, 100000)
+        random_weight = random.randint(-10000, 1000)
         user_last_weight = await last_weight(message.chat.id, message.from_user.id)
         weight_diff = abs(random_weight - user_last_weight)
         weight_diff_kg = weight_diff / 1000
